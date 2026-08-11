@@ -1558,8 +1558,13 @@ export class PlayerImpl implements Player {
     if (!mg.isLand(tile) || mg.isImpassable(tile)) {
       return false;
     }
-    // Unlike bomberSpawn, dropping on our own or an allied tile is allowed
-    // and intentional: it's how paratroopers reinforce disconnected territory.
+    // Unlike bomberSpawn, dropping on our own tile is allowed and intentional:
+    // it's how paratroopers reinforce disconnected territory. Allied tiles
+    // are not a supported drop target, though.
+    const owner = mg.owner(tile);
+    if (owner.isPlayer() && owner !== this && this.isFriendly(owner)) {
+      return false;
+    }
 
     const readyAirports = this.units(UnitType.Airport).filter(
       (airport) =>

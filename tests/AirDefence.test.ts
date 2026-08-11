@@ -9,6 +9,7 @@ import {
   UnitType,
 } from "../src/core/game/Game";
 import { setup } from "./util/Setup";
+import { TestConfig } from "./util/TestConfig";
 import { executeTicks } from "./util/utils";
 
 let game: Game;
@@ -18,6 +19,9 @@ let defender: Player;
 describe("AirDefence", () => {
   beforeEach(async () => {
     game = await setup("plains", { infiniteGold: true, instantBuild: true });
+    // Bomber speed derives from nuke speed (half of it), so pin nuke speed
+    // here too, same as tests that care about nuke travel time.
+    (game.config() as TestConfig).setDefaultNukeSpeed(20);
 
     const attackerInfo = new PlayerInfo(
       "attacker_id",
@@ -60,9 +64,7 @@ describe("AirDefence", () => {
   test("air defence shoots down an inbound bomber before it reaches its target", () => {
     const troopsBefore = defender.troops();
 
-    game.addExecution(
-      new BomberExecution(attacker, game.ref(50, 50)),
-    );
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
     executeTicks(game, 2);
     expect(attacker.units(UnitType.Bomber)).toHaveLength(1);
 
@@ -90,9 +92,7 @@ describe("AirDefence", () => {
     game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
     executeTicks(game, 30);
     expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
-    expect(
-      defender.units(UnitType.AirDefence)[0].isInCooldown(),
-    ).toBeTruthy();
+    expect(defender.units(UnitType.AirDefence)[0].isInCooldown()).toBeTruthy();
 
     const troopsBefore = defender.troops();
 

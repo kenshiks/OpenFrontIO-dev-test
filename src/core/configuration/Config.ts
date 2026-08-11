@@ -477,10 +477,11 @@ export class Config {
         };
         break;
       case UnitType.AirDefence:
+        // Same cost curve as City/Factory/Port.
         info = {
           cost: this.costWrapper(
             (numUnits: number) =>
-              Math.min(3_000_000, (numUnits + 1) * 1_500_000),
+              Math.min(1_000_000, Math.pow(2, numUnits) * 125_000),
             UnitType.AirDefence,
           ),
           constructionDuration: this.instantBuild()
@@ -489,8 +490,12 @@ export class Config {
         };
         break;
       case UnitType.Bomber:
+        // Same cost curve as Warship.
         info = {
-          cost: this.costWrapper(() => 400_000, UnitType.Bomber),
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
+            UnitType.Bomber,
+          ),
           maxHealth: 1,
         };
         break;
@@ -500,9 +505,12 @@ export class Config {
         };
         break;
       case UnitType.Paratrooper:
-        // Free like TransportShip: the troops it carries are the real cost.
+        // Same cost curve as Warship.
         info = {
-          cost: () => 0n,
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
+            UnitType.Paratrooper,
+          ),
           maxHealth: 1,
         };
         break;
@@ -1024,8 +1032,10 @@ export class Config {
     return 100;
   }
 
+  // Half the speed of a standard nuke: bombers and paratroopers are
+  // conventional aircraft, not missiles.
   defaultBomberSpeed(): number {
-    return 6;
+    return this.nukeSpeed(UnitType.AtomBomb) / 2;
   }
 
   defaultFlakMissileSpeed(): number {
@@ -1033,7 +1043,7 @@ export class Config {
   }
 
   defaultParatrooperSpeed(): number {
-    return 6;
+    return this.nukeSpeed(UnitType.AtomBomb) / 2;
   }
 
   // Radius (in tiles) of a bomber's conventional blast. `inner` is where

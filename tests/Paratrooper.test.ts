@@ -10,6 +10,7 @@ import {
 } from "../src/core/game/Game";
 import { TileRef } from "../src/core/game/GameMap";
 import { setup } from "./util/Setup";
+import { TestConfig } from "./util/TestConfig";
 import { executeTicks } from "./util/utils";
 
 let game: Game;
@@ -23,6 +24,9 @@ function newPlayer(mg: Game, id: string): Player {
 describe("Paratrooper", () => {
   beforeEach(async () => {
     game = await setup("plains", { infiniteGold: true, instantBuild: true });
+    // Bomber/Paratrooper speed derives from nuke speed (half of it), so pin
+    // nuke speed here too, same as tests that care about nuke travel time.
+    (game.config() as TestConfig).setDefaultNukeSpeed(20);
     attacker = newPlayer(game, "attacker_id");
     attacker.conquer(game.ref(1, 1));
     attacker.addTroops(10_000);
@@ -86,6 +90,9 @@ describe("Paratrooper", () => {
   });
 
   test("air defence shoots down an inbound paratrooper before it lands", () => {
+    // Slower than the other tests: interception needs the flak missile
+    // (fixed speed) enough runway to catch up before the plane lands.
+    (game.config() as TestConfig).setDefaultNukeSpeed(8);
     const defender = newPlayer(game, "defender_id");
     const targetTile = game.ref(80, 80);
     defender.conquer(targetTile);

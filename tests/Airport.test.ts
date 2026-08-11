@@ -9,6 +9,7 @@ import {
 } from "../src/core/game/Game";
 import { TileRef } from "../src/core/game/GameMap";
 import { setup } from "./util/Setup";
+import { TestConfig } from "./util/TestConfig";
 import { executeTicks } from "./util/utils";
 
 let game: Game;
@@ -25,6 +26,9 @@ function attackerBuildsBomber(target: TileRef, initialize = true) {
 describe("Airport", () => {
   beforeEach(async () => {
     game = await setup("plains", { infiniteGold: true, instantBuild: true });
+    // Bomber speed derives from nuke speed (half of it), so pin nuke speed
+    // here too, same as tests that care about nuke travel time.
+    (game.config() as TestConfig).setDefaultNukeSpeed(20);
 
     const attackerInfo = new PlayerInfo(
       "attacker_id",
@@ -66,9 +70,7 @@ describe("Airport", () => {
 
     for (let i = 0; i < game.config().airportCooldown() - 2; i++) {
       game.executeNextTick();
-      expect(
-        attacker.units(UnitType.Airport)[0].isInCooldown(),
-      ).toBeTruthy();
+      expect(attacker.units(UnitType.Airport)[0].isInCooldown()).toBeTruthy();
     }
 
     executeTicks(game, 2);
@@ -76,7 +78,7 @@ describe("Airport", () => {
     expect(attacker.units(UnitType.Airport)[0].isInCooldown()).toBeFalsy();
   });
 
-  test("bombing damages troops without changing tile ownership", async () => {
+  test("bombing damages troops and relinquishes the impact tile to neutral", async () => {
     const defenderInfo = new PlayerInfo(
       "defender_id",
       PlayerType.Human,
@@ -94,7 +96,9 @@ describe("Airport", () => {
     executeTicks(game, 30);
 
     expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
-    expect(game.owner(targetTile)).toBe(defender);
+    // Ground zero reverts to neutral, same as a nuke's impact zone — the
+    // attacker has to walk in and retake it, it isn't captured automatically.
+    expect(game.owner(targetTile).isPlayer()).toBe(false);
     expect(defender.troops()).toBeLessThan(troopsBefore);
   });
 
@@ -115,7 +119,8 @@ describe("Airport", () => {
     executeTicks(game, 30);
 
     expect(city.isActive()).toBeFalsy();
-    // Conventional bombing never changes tile ownership, unlike a nuke.
-    expect(game.owner(targetTile)).toBe(defender);
+    // Ground zero also reverts to neutral; conventional bombing still
+    // doesn't hand the attacker the land the way a boat/paratrooper does.
+    expect(game.owner(targetTile).isPlayer()).toBe(false);
   });
 });

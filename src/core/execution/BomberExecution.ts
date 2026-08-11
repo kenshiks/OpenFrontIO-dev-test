@@ -12,9 +12,11 @@ import { PathFinding } from "../pathfinding/PathFinder";
 
 /**
  * A bomber is a conventional (non-nuclear) strike: it damages troops and
- * flattens nearby structures in its blast radius, but never changes tile
- * ownership the way a nuke does. It has a single hit point, so any
- * interception (see AirDefenceExecution) destroys it outright.
+ * flattens nearby structures in its blast radius. Land within the inner
+ * radius is relinquished to neutral, same as a nuke's impact zone — the
+ * attacker doesn't automatically capture it, it just has to be retaken.
+ * It has a single hit point, so any interception (see AirDefenceExecution)
+ * destroys it outright.
  */
 export class BomberExecution implements Execution {
   private active = true;
@@ -42,9 +44,7 @@ export class BomberExecution implements Execution {
         this.active = false;
         return;
       }
-      this.path = PathFinding.Air(this.mg).findPath(spawn, this.dst) ?? [
-        spawn,
-      ];
+      this.path = PathFinding.Air(this.mg).findPath(spawn, this.dst) ?? [spawn];
       const trajectory: TrajectoryTile[] = this.path.map((tile) => ({
         tile,
         targetable: true,
@@ -78,7 +78,10 @@ export class BomberExecution implements Execution {
       return;
     }
 
-    this.pathIndex = Math.min(this.pathIndex + this.speed, this.path.length - 1);
+    this.pathIndex = Math.min(
+      this.pathIndex + this.speed,
+      this.path.length - 1,
+    );
     this.bomber.move(this.path[this.pathIndex]);
     this.bomber.setTrajectoryIndex(this.pathIndex);
 
@@ -98,7 +101,8 @@ export class BomberExecution implements Execution {
 
     const blastTiles = mg.bfs(
       this.dst,
-      (_, n) => mg.euclideanDistSquared(this.dst, n) <= outer2 && !mg.isImpassable(n),
+      (_, n) =>
+        mg.euclideanDistSquared(this.dst, n) <= outer2 && !mg.isImpassable(n),
     );
 
     const tilesPerPlayer = new Map<Player, number>();
@@ -106,6 +110,11 @@ export class BomberExecution implements Execution {
       const owner = mg.owner(tile);
       if (owner.isPlayer()) {
         tilesPerPlayer.set(owner, (tilesPerPlayer.get(owner) ?? 0) + 1);
+        // Ground zero itself reverts to neutral; the rest of the blast
+        // (troop damage, structure destruction) reaches further out.
+        if (mg.euclideanDistSquared(this.dst, tile) <= inner2) {
+          owner.relinquish(tile);
+        }
       }
     }
 
