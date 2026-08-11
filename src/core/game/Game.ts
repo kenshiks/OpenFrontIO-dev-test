@@ -204,6 +204,7 @@ export enum UnitType {
   AirDefence = "Air Defence",
   Bomber = "Bomber",
   FlakMissile = "Flak Missile",
+  Paratrooper = "Paratrooper",
 }
 
 export enum TrainType {
@@ -225,6 +226,7 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.MIRV,
   UnitType.Warship,
   UnitType.Bomber,
+  UnitType.Paratrooper,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -327,6 +329,12 @@ export interface UnitParamsMap {
 
   [UnitType.FlakMissile]: {
     targetUnit: Unit;
+  };
+
+  [UnitType.Paratrooper]: {
+    troops?: number;
+    targetTile?: number;
+    trajectory: TrajectoryTile[];
   };
 }
 

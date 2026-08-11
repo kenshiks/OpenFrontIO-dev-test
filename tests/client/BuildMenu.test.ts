@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
-import { buildTable, flattenedBuildTable } from "../../src/client/hud/layers/BuildMenu";
+import {
+  buildTable,
+  flattenedBuildTable,
+} from "../../src/client/hud/layers/BuildMenu";
 import { UnitType } from "../../src/core/game/Game";
 
 const RESOURCES_DIR = path.join(__dirname, "../../resources");
@@ -50,6 +53,15 @@ describe("BuildMenu", () => {
     expect(entry?.countable).toBe(false);
     expect(entry?.key).toBe("unit_type.bomber");
     expect(entry?.description).toBe("build_menu.desc.bomber");
+    expect(fs.existsSync(assetPathFor(entry!.icon))).toBe(true);
+  });
+
+  it("lists Paratrooper as a non-countable attack (target-tile) unit with a working icon", () => {
+    const entry = entryFor(UnitType.Paratrooper);
+    expect(entry).toBeDefined();
+    expect(entry?.countable).toBe(false);
+    expect(entry?.key).toBe("unit_type.paratrooper");
+    expect(entry?.description).toBe("build_menu.desc.paratrooper");
     expect(fs.existsSync(assetPathFor(entry!.icon))).toBe(true);
   });
 

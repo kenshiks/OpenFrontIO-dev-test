@@ -37,7 +37,8 @@ export class FlakMissileExecution implements Execution {
       !this.target.isActive() ||
       !this.ownerUnit.isActive() ||
       this.target.owner() === this.flak.owner() ||
-      this.target.type() !== UnitType.Bomber
+      (this.target.type() !== UnitType.Bomber &&
+        this.target.type() !== UnitType.Paratrooper)
     ) {
       this.flak.delete(false);
       this.active = false;

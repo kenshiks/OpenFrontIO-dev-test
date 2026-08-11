@@ -12,11 +12,13 @@ type InterceptionTile = {
   tick: number;
 };
 
+const INTERCEPTABLE_AIRCRAFT = [UnitType.Bomber, UnitType.Paratrooper] as const;
+
 /**
- * Targeting system for an Air Defence structure: preshoots incoming bombers
- * along their known flight path so its range is strictly enforced.
- * Mirrors SAMLauncherExecution's SAMTargetingSystem, but against Bomber
- * instead of nukes.
+ * Targeting system for an Air Defence structure: preshoots incoming aircraft
+ * (bombers, paratroopers) along their known flight path so its range is
+ * strictly enforced. Mirrors SAMLauncherExecution's SAMTargetingSystem, but
+ * against aircraft instead of nukes.
  */
 class AirDefenceTargetingSystem {
   private readonly precomputedBombers: Map<number, InterceptionTile | null> =
@@ -58,8 +60,8 @@ class AirDefenceTargetingSystem {
     const trajectory = unit.trajectory();
     const currentIndex = unit.trajectoryIndex();
 
-    // BomberExecution runs before AirDefenceExecution; it cannot intercept
-    // the final tick.
+    // BomberExecution/ParatrooperExecution run before AirDefenceExecution;
+    // it cannot intercept the final tick.
     const maxInterceptionIndex = trajectory.length - 2;
     for (let i = currentIndex; i <= maxInterceptionIndex; i++) {
       const trajectoryTile = trajectory[i];
@@ -82,8 +84,7 @@ class AirDefenceTargetingSystem {
     const finalTile = trajectory[trajectory.length - 1];
     if (
       finalTile &&
-      this.mg.euclideanDistSquared(defenceTile, finalTile.tile) <=
-        rangeSquared
+      this.mg.euclideanDistSquared(defenceTile, finalTile.tile) <= rangeSquared
     ) {
       const targetInFlightTile = trajectory[maxInterceptionIndex];
       if (targetInFlightTile) {
@@ -111,7 +112,7 @@ class AirDefenceTargetingSystem {
     const bombers = this.mg.nearbyUnits(
       defenceTile,
       detectionRange,
-      UnitType.Bomber,
+      INTERCEPTABLE_AIRCRAFT,
       ({ unit }) => isUnit(unit) && unit.owner() !== this.airDefence.owner(),
     );
 

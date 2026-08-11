@@ -40,6 +40,7 @@ const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
 const airportIcon = assetUrl("images/AirportIconWhite.svg");
 const airDefenceIcon = assetUrl("images/AirDefenceIconWhite.svg");
 const bomberIcon = assetUrl("images/BomberIconWhite.svg");
+const paratrooperIcon = assetUrl("images/ParatrooperIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -112,6 +113,13 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: bomberIcon,
       description: "build_menu.desc.bomber",
       key: "unit_type.bomber",
+      countable: false,
+    },
+    {
+      unitType: UnitType.Paratrooper,
+      icon: paratrooperIcon,
+      description: "build_menu.desc.paratrooper",
+      key: "unit_type.paratrooper",
       countable: false,
     },
     {

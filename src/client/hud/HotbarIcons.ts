@@ -14,6 +14,7 @@ export const defensePostIcon = assetUrl("images/ShieldIconWhite.svg");
 export const airportIcon = assetUrl("images/AirportIconWhite.svg");
 export const airDefenceIcon = assetUrl("images/AirDefenceIconWhite.svg");
 export const bomberIcon = assetUrl("images/BomberIconWhite.svg");
+export const paratrooperIcon = assetUrl("images/ParatrooperIconWhite.svg");
 export const soldierIcon = assetUrl("images/SoldierIcon.svg");
 export const claimIcon = assetUrl("images/ClaimIcon.svg");
 export const profileIcon = assetUrl("images/ProfileIcon.svg");

@@ -1459,6 +1459,8 @@ export class PlayerImpl implements Player {
         return this.landBasedStructureSpawn(targetTile, validTiles);
       case UnitType.Bomber:
         return this.bomberSpawn(targetTile);
+      case UnitType.Paratrooper:
+        return this.paratrooperSpawn(targetTile);
       case UnitType.FlakMissile:
         return targetTile;
       default:
@@ -1534,6 +1536,31 @@ export class PlayerImpl implements Player {
     }
 
     // only get airports that are not on cooldown and not under construction
+    const readyAirports = this.units(UnitType.Airport).filter(
+      (airport) =>
+        airport.isActive() &&
+        !airport.isInCooldown() &&
+        !airport.isUnderConstruction(),
+    );
+    readyAirports.sort(
+      (a, b) =>
+        mg.manhattanDist(a.tile(), tile) - mg.manhattanDist(b.tile(), tile),
+    );
+    return readyAirports[0]?.tile() ?? false;
+  }
+
+  paratrooperSpawn(tile: TileRef): TileRef | false {
+    const mg = this.mg;
+    if (mg.isSpawnImmunityActive()) {
+      return false;
+    }
+    // Troops need solid ground to land on, unlike a bomb's target tile.
+    if (!mg.isLand(tile) || mg.isImpassable(tile)) {
+      return false;
+    }
+    // Unlike bomberSpawn, dropping on our own or an allied tile is allowed
+    // and intentional: it's how paratroopers reinforce disconnected territory.
+
     const readyAirports = this.units(UnitType.Airport).filter(
       (airport) =>
         airport.isActive() &&

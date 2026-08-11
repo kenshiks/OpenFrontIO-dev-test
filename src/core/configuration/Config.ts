@@ -499,6 +499,13 @@ export class Config {
           cost: () => 0n,
         };
         break;
+      case UnitType.Paratrooper:
+        // Free like TransportShip: the troops it carries are the real cost.
+        info = {
+          cost: () => 0n,
+          maxHealth: 1,
+        };
+        break;
       case UnitType.City:
         info = {
           cost: this.costWrapper(
@@ -832,6 +839,13 @@ export class Config {
     return Math.floor(attacker.troops() / 5);
   }
 
+  paratrooperDropAmount(
+    attacker: Player,
+    defender: Player | TerraNullius,
+  ): number {
+    return this.boatAttackAmount(attacker, defender);
+  }
+
   warshipShellLifetime(): number {
     return 20; // in ticks (one tick is 100ms)
   }
@@ -1016,6 +1030,10 @@ export class Config {
 
   defaultFlakMissileSpeed(): number {
     return 14;
+  }
+
+  defaultParatrooperSpeed(): number {
+    return 6;
   }
 
   // Radius (in tiles) of a bomber's conventional blast. `inner` is where

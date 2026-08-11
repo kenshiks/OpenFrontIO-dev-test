@@ -119,6 +119,7 @@
       "hydrogen_bomb": "Large explosion",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
+      "paratrooper": "Drops troops anywhere within reach of an airport",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
       "warship": "Captures trade ships, destroys ships and boats"
@@ -1694,6 +1695,7 @@
     "hydrogen_bomb": "Hydrogen Bomb",
     "mirv": "MIRV",
     "missile_silo": "Missile Silo",
+    "paratrooper": "Paratrooper",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
     "warship": "Warship"
