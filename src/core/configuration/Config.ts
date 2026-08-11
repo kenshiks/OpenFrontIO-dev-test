@@ -1028,8 +1028,9 @@ export class Config {
     return 12;
   }
 
+  // Fixed range, no upgrade path (unlike SAM Launcher's samRange(level)).
   airDefenceRange(): number {
-    return 100;
+    return 60;
   }
 
   // Half the speed of a standard nuke: bombers and paratroopers are

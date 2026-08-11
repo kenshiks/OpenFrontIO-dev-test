@@ -90,11 +90,13 @@ describe("Paratrooper", () => {
   });
 
   test("air defence shoots down an inbound paratrooper before it lands", () => {
-    // Slower than the other tests: interception needs the flak missile
-    // (fixed speed) enough runway to catch up before the plane lands.
-    (game.config() as TestConfig).setDefaultNukeSpeed(8);
+    // Closer than the other tests and a bit slower: Air Defence has a
+    // fixed, unupgradeable 60-tile range, so interception needs the target
+    // within reliable reach of that range, with enough runway left for the
+    // flak missile (fixed speed) to catch up before the plane lands.
+    (game.config() as TestConfig).setDefaultNukeSpeed(10);
     const defender = newPlayer(game, "defender_id");
-    const targetTile = game.ref(80, 80);
+    const targetTile = game.ref(50, 50);
     defender.conquer(targetTile);
     defender.addTroops(10_000);
     const airDefence = defender.buildUnit(UnitType.AirDefence, targetTile, {});

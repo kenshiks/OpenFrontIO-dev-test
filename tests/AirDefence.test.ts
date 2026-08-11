@@ -20,8 +20,10 @@ describe("AirDefence", () => {
   beforeEach(async () => {
     game = await setup("plains", { infiniteGold: true, instantBuild: true });
     // Bomber speed derives from nuke speed (half of it), so pin nuke speed
-    // here too, same as tests that care about nuke travel time.
-    (game.config() as TestConfig).setDefaultNukeSpeed(20);
+    // here too, same as tests that care about nuke travel time. Kept slow
+    // enough that interception at Air Defence's (fixed, unupgradeable) 60
+    // range has a reliable window to work with.
+    (game.config() as TestConfig).setDefaultNukeSpeed(10);
 
     const attackerInfo = new PlayerInfo(
       "attacker_id",
