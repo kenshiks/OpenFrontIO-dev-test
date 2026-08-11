@@ -1,5 +1,6 @@
 import { AirDefenceExecution } from "../src/core/execution/AirDefenceExecution";
 import { AirportExecution } from "../src/core/execution/AirportExecution";
+import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { BomberExecution } from "../src/core/execution/BomberExecution";
 import {
   Game,
@@ -105,5 +106,53 @@ describe("AirDefence", () => {
 
     expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
     expect(defender.troops()).toBeLessThan(troopsBefore);
+  });
+
+  test("does not shoot down an allied bomber", () => {
+    game.addExecution(new AllianceRequestExecution(attacker, defender.id()));
+    game.executeNextTick();
+    game.addExecution(new AllianceRequestExecution(defender, attacker.id()));
+    game.executeNextTick();
+    expect(attacker.isAlliedWith(defender)).toBeTruthy();
+
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+
+    // Reached the target and detonated (ground zero goes neutral) instead
+    // of being shot down mid-flight by its own ally's Air Defence.
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(game.owner(game.ref(50, 50)).isPlayer()).toBe(false);
+  });
+
+  test("two independent Air Defences don't both fire at the same bomber", () => {
+    // A second, unrelated defender with its own Air Defence at the same
+    // spot: both structures can see the one inbound bomber.
+    const defender2Info = new PlayerInfo(
+      "defender2_id",
+      PlayerType.Human,
+      null,
+      "defender2_id",
+    );
+    game.addPlayer(defender2Info);
+    const defender2 = game.player("defender2_id");
+    defender2.conquer(game.ref(51, 51));
+    const airDefence2 = defender2.buildUnit(
+      UnitType.AirDefence,
+      game.ref(51, 51),
+      {},
+    );
+    game.addExecution(new AirDefenceExecution(defender2, null, airDefence2));
+    executeTicks(game, 2);
+
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    // Only one of the two should actually have fired and gone on cooldown;
+    // the other's shot would be wasted on an already-dead target.
+    const onCooldown = [defender, defender2].filter((p) =>
+      p.units(UnitType.AirDefence)[0].isInCooldown(),
+    );
+    expect(onCooldown).toHaveLength(1);
   });
 });

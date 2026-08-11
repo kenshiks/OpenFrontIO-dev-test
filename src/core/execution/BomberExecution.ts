@@ -124,21 +124,29 @@ export class BomberExecution implements Execution {
     }
 
     // Precision strike: only structures near ground zero are levelled.
-    for (const unit of mg.units()) {
-      if (
-        Structures.has(unit.type()) &&
-        mg.euclideanDistSquared(this.dst, unit.tile()) <= inner2
-      ) {
+    // Spatial query instead of scanning every unit on the map. Structures
+    // under construction are included too, same as the original full scan.
+    for (const { unit, distSquared } of mg.nearbyUnits(
+      this.dst,
+      outer,
+      Structures.types,
+      undefined,
+      true,
+    )) {
+      if (distSquared <= inner2) {
         unit.delete(true, this.player);
       }
     }
 
     // Redraw structures across the wider blast so damage/health bars refresh.
-    for (const unit of mg.units()) {
-      if (
-        Structures.has(unit.type()) &&
-        mg.euclideanDistSquared(this.dst, unit.tile()) <= outer2
-      ) {
+    for (const { unit, distSquared } of mg.nearbyUnits(
+      this.dst,
+      outer,
+      Structures.types,
+      undefined,
+      true,
+    )) {
+      if (distSquared <= outer2) {
         unit.touch();
       }
     }

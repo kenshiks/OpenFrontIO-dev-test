@@ -18,7 +18,10 @@ const INTERCEPTABLE_AIRCRAFT = [UnitType.Bomber, UnitType.Paratrooper] as const;
  * Targeting system for an Air Defence structure: preshoots incoming aircraft
  * (bombers, paratroopers) along their known flight path so its range is
  * strictly enforced. Mirrors SAMLauncherExecution's SAMTargetingSystem, but
- * against aircraft instead of nukes.
+ * against aircraft instead of nukes — including reusing the same
+ * targetedBySAM flag to keep two Air Defences from both locking onto the
+ * same aircraft. It's a generic per-unit flag (not nuke-specific), and SAM
+ * never queries Bomber/Paratrooper units, so there's no cross-talk.
  */
 class AirDefenceTargetingSystem {
   private readonly precomputedBombers: Map<number, InterceptionTile | null> =
@@ -109,11 +112,26 @@ class AirDefenceTargetingSystem {
     const rangeSquared = range * range;
     const detectionRange = range * 2;
 
+    const defenceOwner = this.airDefence.owner();
     const bombers = this.mg.nearbyUnits(
       defenceTile,
       detectionRange,
       INTERCEPTABLE_AIRCRAFT,
-      ({ unit }) => isUnit(unit) && unit.owner() !== this.airDefence.owner(),
+      ({ unit }) => {
+        if (!isUnit(unit) || unit.targetedBySAM()) return false;
+        if (unit.owner() === defenceOwner) return false;
+
+        const aircraftOwner = unit.owner();
+        // After game-over in team games, also target teammate aircraft
+        // (aftergame fun), same exception SAMLauncherExecution makes.
+        if (defenceOwner.isFriendly(aircraftOwner)) {
+          return (
+            this.mg.getWinner() !== null &&
+            defenceOwner.isOnSameTeam(aircraftOwner)
+          );
+        }
+        return true;
+      },
     );
 
     this.updateUnreachableBombers(bombers);
@@ -235,6 +253,7 @@ export class AirDefenceExecution implements Execution {
         break;
       }
       this.airDefence.launch();
+      target.unit.setTargetedBySAM(true);
       this.mg.addExecution(
         new FlakMissileExecution(
           this.airDefence.tile(),

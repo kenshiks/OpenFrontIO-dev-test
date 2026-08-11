@@ -40,6 +40,11 @@ export class FlakMissileExecution implements Execution {
       (this.target.type() !== UnitType.Bomber &&
         this.target.type() !== UnitType.Paratrooper)
     ) {
+      // Clear the flag so other Air Defences (or SAMs, though they never
+      // query aircraft types) can re-target this aircraft.
+      if (this.target.isActive()) {
+        this.target.setTargetedBySAM(false);
+      }
       this.flak.delete(false);
       this.active = false;
       return;
