@@ -9,6 +9,7 @@ import {
 } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
+import { listNukeBreakAlliance } from "./Util";
 
 /**
  * A bomber is a conventional (non-nuclear) strike: it damages troops and
@@ -17,6 +18,11 @@ import { PathFinding } from "../pathfinding/PathFinder";
  * attacker doesn't automatically capture it, it just has to be retaken.
  * It has a single hit point, so any interception (see AirDefenceExecution)
  * destroys it outright.
+ *
+ * Bombing a significant chunk of an ally's territory (or any of their
+ * structures) breaks the alliance and marks the attacker a traitor, same
+ * as nuking one does — diplomatically a bomber is just as much of a
+ * declaration of war as a nuke.
  */
 export class BomberExecution implements Execution {
   private active = true;
@@ -55,6 +61,7 @@ export class BomberExecution implements Execution {
       });
       this.pathIndex = 0;
       this.bomber.setTrajectoryIndex(0);
+      this.maybeBreakAlliances();
 
       const airport = this.player
         .units(UnitType.Airport)
@@ -87,6 +94,53 @@ export class BomberExecution implements Execution {
 
     if (this.pathIndex >= this.path.length - 1) {
       this.detonate();
+    }
+  }
+
+  /**
+   * Break alliances with players significantly affected by the strike.
+   * Same rule and threshold as NukeExecution.maybeBreakAlliances(): weighted
+   * tile counting (inner=1, outer=0.5), or any allied structure in blast.
+   */
+  private maybeBreakAlliances(): void {
+    const magnitude = this.mg.config().bomberBlastRadius();
+    const playersToBreakAllianceWith = listNukeBreakAlliance({
+      game: this.mg,
+      targetTile: this.dst,
+      magnitude,
+      threshold: this.mg.config().nukeAllianceBreakThreshold(),
+    });
+
+    // Automatically reject incoming alliance requests.
+    for (const incoming of this.player.incomingAllianceRequests()) {
+      if (playersToBreakAllianceWith.has(incoming.requestor().smallID())) {
+        incoming.reject();
+      }
+    }
+
+    for (const playerSmallId of playersToBreakAllianceWith) {
+      const attackedPlayer = this.mg.playerBySmallID(playerSmallId);
+      if (!attackedPlayer.isPlayer()) {
+        continue;
+      }
+
+      // Resolves exploit of alliance breaking in which a pending alliance
+      // request was accepted in the middle of a bombing run.
+      const outgoingAllianceRequest = attackedPlayer
+        .incomingAllianceRequests()
+        .find((ar) => ar.requestor() === this.player);
+      if (outgoingAllianceRequest) {
+        outgoingAllianceRequest.reject();
+        continue;
+      }
+
+      const alliance = this.player.allianceWith(attackedPlayer);
+      if (alliance !== null) {
+        this.player.breakAlliance(alliance);
+      }
+      if (attackedPlayer !== this.player) {
+        attackedPlayer.updateRelation(this.player, -100);
+      }
     }
   }
 

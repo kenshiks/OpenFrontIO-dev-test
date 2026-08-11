@@ -16,6 +16,7 @@ import { PseudoRandom } from "../PseudoRandom";
 import { GameID } from "../Schemas";
 import { assertNever, simpleHash } from "../Util";
 import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
+import { NationBomberBehavior } from "./nation/NationBomberBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
@@ -35,6 +36,7 @@ export class NationExecution implements Execution {
   private allianceBehavior!: NationAllianceBehavior;
   private warshipBehavior!: NationWarshipBehavior;
   private nukeBehavior!: NationNukeBehavior;
+  private bomberBehavior!: NationBomberBehavior;
   private structureBehavior!: NationStructureBehavior;
   private mg: Game;
   private player: Player | null = null;
@@ -207,6 +209,8 @@ export class NationExecution implements Execution {
     this.attackBehavior.maybeAttack();
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
+    this.bomberBehavior.maybeSendBomber();
+    this.bomberBehavior.maybeSendParatrooper();
   }
 
   private initializeBehaviors(): void {
@@ -251,6 +255,13 @@ export class NationExecution implements Execution {
       this.player,
       this.attackBehavior,
       this.emojiBehavior,
+    );
+    this.bomberBehavior = new NationBomberBehavior(
+      this.random,
+      this.mg,
+      this.player,
+      this.nukeBehavior,
+      this.attackBehavior,
     );
     this.structureBehavior = new NationStructureBehavior(
       this.random,

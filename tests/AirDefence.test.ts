@@ -115,13 +115,35 @@ describe("AirDefence", () => {
     game.executeNextTick();
     expect(attacker.isAlliedWith(defender)).toBeTruthy();
 
+    // Target a spot a few tiles off the defender's Air Defence itself
+    // (still well within its 60-tile interception range) so the strike
+    // doesn't land on an allied structure and trip the separate
+    // alliance-breaking rule tested below — this test is only about the
+    // friendly-fire exclusion while genuinely still allied.
+    game.addExecution(new BomberExecution(attacker, game.ref(55, 50)));
+    executeTicks(game, 30);
+
+    // Reached the target and detonated instead of being shot down mid-flight
+    // by its own ally's Air Defence, which never fired.
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(defender.units(UnitType.AirDefence)[0].isInCooldown()).toBeFalsy();
+  });
+
+  test("bombing an ally's structure breaks the alliance", () => {
+    game.addExecution(new AllianceRequestExecution(attacker, defender.id()));
+    game.executeNextTick();
+    game.addExecution(new AllianceRequestExecution(defender, attacker.id()));
+    game.executeNextTick();
+    expect(attacker.isAlliedWith(defender)).toBeTruthy();
+
+    // Bomb the ally's own Air Defence directly: same rule as a nuke, hitting
+    // an allied structure breaks the alliance (and marks the attacker a
+    // traitor) at launch time, regardless of blast-radius tile count.
     game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
     executeTicks(game, 30);
 
-    // Reached the target and detonated (ground zero goes neutral) instead
-    // of being shot down mid-flight by its own ally's Air Defence.
-    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
-    expect(game.owner(game.ref(50, 50)).isPlayer()).toBe(false);
+    expect(attacker.isAlliedWith(defender)).toBeFalsy();
+    expect(attacker.isTraitor()).toBeTruthy();
   });
 
   test("two independent Air Defences don't both fire at the same bomber", () => {

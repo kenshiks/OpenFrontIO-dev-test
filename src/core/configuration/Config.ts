@@ -490,12 +490,14 @@ export class Config {
         };
         break;
       case UnitType.Bomber:
-        // Same cost curve as Warship.
+        // Flat cost like Atom Bomb, not a per-unit-count curve: a Bomber is
+        // single-use and short-lived (destroyed on impact or interception),
+        // so unitsOwned resets to 0 between launches and a scaling curve
+        // never actually climbs for repeated single strikes — it would
+        // just make every bomb 3x cheaper than an Atom Bomb of the same
+        // blast radius. Same destructive footprint, same price.
         info = {
-          cost: this.costWrapper(
-            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
-            UnitType.Bomber,
-          ),
+          cost: this.costWrapper(() => 750_000, UnitType.Bomber),
           maxHealth: 1,
         };
         break;
