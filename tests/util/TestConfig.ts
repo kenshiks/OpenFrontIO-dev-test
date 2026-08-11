@@ -13,6 +13,7 @@ export class TestConfig extends Config {
   private _defaultNukeSpeed: number = 4;
   private _spawnImmunityDuration: number = 0;
   private _nationSpawnImmunityDuration: number = 0;
+  private _nukeMagnitude: NukeMagnitude = { inner: 1, outer: 1 };
 
   disableNavMesh(): boolean {
     return this.gameConfig().disableNavMesh ?? true;
@@ -31,8 +32,15 @@ export class TestConfig extends Config {
     this._proximityBonusPortsNb = nb;
   }
 
+  setNukeMagnitudes(magnitude: NukeMagnitude): void {
+    this._nukeMagnitude = magnitude;
+  }
+
+  // Flat, tiny magnitude for all nuke types (and, since it derives from
+  // this, bomberBlastRadius) so test tick counts and tile counts stay
+  // predictable, unless a test opts into a bigger one via setNukeMagnitudes.
   nukeMagnitudes(_: UnitType): NukeMagnitude {
-    return { inner: 1, outer: 1 };
+    return this._nukeMagnitude;
   }
 
   setDefaultNukeSpeed(speed: number): void {

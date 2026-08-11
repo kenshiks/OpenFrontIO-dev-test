@@ -1047,11 +1047,12 @@ export class Config {
     return this.nukeSpeed(UnitType.AtomBomb) / 2;
   }
 
-  // Radius (in tiles) of a bomber's conventional blast. `inner` is where
-  // structures get destroyed outright; `outer` is the falloff edge for troop
-  // damage. Unlike nukes, bombing never changes tile ownership.
-  bomberBlastRadius(): { inner: number; outer: number } {
-    return { inner: 3, outer: 6 };
+  // Same blast radius as an Atom Bomb: `inner` is where structures get
+  // destroyed outright and land reverts to neutral; `outer` is the falloff
+  // edge for troop damage. Unlike a nuke, there's no fallout and no
+  // land-to-water cratering — a bomber is conventional, not nuclear.
+  bomberBlastRadius(): NukeMagnitude {
+    return this.nukeMagnitudes(UnitType.AtomBomb);
   }
 
   bomberTroopDamageFactor(): number {

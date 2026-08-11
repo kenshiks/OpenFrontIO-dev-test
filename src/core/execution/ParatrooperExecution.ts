@@ -14,10 +14,13 @@ import { AttackExecution } from "./AttackExecution";
 /**
  * Airborne troop delivery from an Airport: flies over anything (no water or
  * border-connectivity constraints, unlike TransportShip) and lands on the
- * target tile. Landing on the attacker's own (possibly disconnected)
- * territory reinforces it directly; landing anywhere else claims a beachhead
- * and launches an AttackExecution from it, same as a boat invasion. Allied
- * territory is not a valid target at all (see PlayerImpl.paratrooperSpawn).
+ * target tile, same landing logic as TransportShipExecution. Landing on the
+ * attacker's own (possibly disconnected) territory reinforces it directly;
+ * landing on a friendly player's territory also just reinforces them;
+ * anywhere else, it claims a beachhead and launches an AttackExecution from
+ * it. Allied territory can't be chosen as a target in the first place (see
+ * PlayerImpl.paratrooperSpawn) — the reinforce-ally path here only matters
+ * if an alliance forms mid-flight, after an attack was already launched.
  *
  * A 1 HP aircraft in flight, so AirDefenceExecution can shoot it down before
  * it lands (its troops are simply lost, same as a destroyed Bomber's blast).
@@ -139,15 +142,19 @@ export class ParatrooperExecution implements Execution {
       this.attacker.addTroops(troops);
     } else {
       this.attacker.conquer(this.dst);
-      this.mg.addExecution(
-        new AttackExecution(
-          troops,
-          this.attacker,
-          this.target.id(),
-          this.dst,
-          false,
-        ),
-      );
+      if (this.target.isPlayer() && this.attacker.isFriendly(this.target)) {
+        this.attacker.addTroops(troops);
+      } else {
+        this.mg.addExecution(
+          new AttackExecution(
+            troops,
+            this.attacker,
+            this.target.id(),
+            this.dst,
+            false,
+          ),
+        );
+      }
     }
 
     this.plane.delete(false);

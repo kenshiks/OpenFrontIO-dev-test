@@ -1,5 +1,6 @@
 import { AirDefenceExecution } from "../src/core/execution/AirDefenceExecution";
 import { AirportExecution } from "../src/core/execution/AirportExecution";
+import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { ParatrooperExecution } from "../src/core/execution/ParatrooperExecution";
 import {
   Game,
@@ -87,6 +88,35 @@ describe("Paratrooper", () => {
     // ...and the dropped troops fought into the rest of the defender's
     // territory, not just absorbed as a free, uncontested capture.
     expect(defender.numTilesOwned()).toBeLessThan(tilesBefore);
+  });
+
+  test("lands peacefully and returns troops if the target becomes an ally mid-flight, same as a boat", () => {
+    const defender = newPlayer(game, "defender_id");
+    const targetTile = game.ref(80, 80);
+    defender.conquer(targetTile);
+    defender.addTroops(10_000);
+    const troopsBefore = attacker.troops();
+
+    game.addExecution(new ParatrooperExecution(attacker, targetTile));
+    executeTicks(game, 2);
+    expect(attacker.units(UnitType.Paratrooper)).toHaveLength(1);
+
+    // Ally forms mid-flight, after the strike was already launched (a
+    // deliberate ally target is still blocked up front by paratrooperSpawn).
+    game.addExecution(new AllianceRequestExecution(attacker, defender.id()));
+    game.executeNextTick();
+    game.addExecution(new AllianceRequestExecution(defender, attacker.id()));
+    game.executeNextTick();
+    expect(attacker.isAlliedWith(defender)).toBeTruthy();
+
+    executeTicks(game, 30);
+
+    expect(attacker.units(UnitType.Paratrooper)).toHaveLength(0);
+    // Boat-style peaceful landing: the beachhead tile is still claimed, but
+    // no attack is launched and the troops return to the attacker instead.
+    expect(game.owner(targetTile)).toBe(attacker);
+    expect(attacker.outgoingAttacks()).toHaveLength(0);
+    expect(attacker.troops()).toBeCloseTo(troopsBefore, 0);
   });
 
   test("air defence shoots down an inbound paratrooper before it lands", () => {

@@ -123,4 +123,35 @@ describe("Airport", () => {
     // doesn't hand the attacker the land the way a boat/paratrooper does.
     expect(game.owner(targetTile).isPlayer()).toBe(false);
   });
+
+  test("blast radius matches an Atom Bomb's, not the old small hand-picked radius", () => {
+    // bomberBlastRadius() derives from nukeMagnitudes(AtomBomb), which
+    // TestConfig otherwise flattens to {inner:1, outer:1} for predictable
+    // tick/tile counts elsewhere — opt into the real Atom Bomb magnitude
+    // here to actually exercise the derived radius.
+    const atomBombMagnitude = { inner: 12, outer: 30 };
+    (game.config() as TestConfig).setNukeMagnitudes(atomBombMagnitude);
+    expect(game.config().bomberBlastRadius()).toEqual(atomBombMagnitude);
+
+    const defenderInfo = new PlayerInfo(
+      "defender_id",
+      PlayerType.Human,
+      null,
+      "defender_id",
+    );
+    game.addPlayer(defenderInfo);
+    const defender = game.player("defender_id");
+    const targetTile = game.ref(50, 50);
+    defender.conquer(targetTile);
+    // 10 tiles from ground zero: outside the old inner radius (3), inside
+    // an Atom Bomb's (12).
+    const nearbyTile = game.ref(50, 60);
+    defender.conquer(nearbyTile);
+    const city = defender.buildUnit(UnitType.City, nearbyTile, {});
+
+    attackerBuildsBomber(targetTile);
+    executeTicks(game, 30);
+
+    expect(city.isActive()).toBeFalsy();
+  });
 });
