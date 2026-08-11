@@ -219,6 +219,12 @@ export class Config {
   SiloCooldown(): number {
     return 90;
   }
+  airportCooldown(): number {
+    return 150;
+  }
+  airDefenceCooldown(): number {
+    return 90;
+  }
 
   defensePostRange(): number {
     return 30;
@@ -458,6 +464,39 @@ export class Config {
             ? 0
             : SAM_CONSTRUCTION_TICKS,
           upgradable: true,
+        };
+        break;
+      case UnitType.Airport:
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              Math.min(2_000_000, (numUnits + 1) * 1_000_000),
+            UnitType.Airport,
+          ),
+          constructionDuration: this.instantBuild() ? 0 : 10 * 10,
+        };
+        break;
+      case UnitType.AirDefence:
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              Math.min(3_000_000, (numUnits + 1) * 1_500_000),
+            UnitType.AirDefence,
+          ),
+          constructionDuration: this.instantBuild()
+            ? 0
+            : SAM_CONSTRUCTION_TICKS,
+        };
+        break;
+      case UnitType.Bomber:
+        info = {
+          cost: this.costWrapper(() => 400_000, UnitType.Bomber),
+          maxHealth: 1,
+        };
+        break;
+      case UnitType.FlakMissile:
+        info = {
+          cost: () => 0n,
         };
         break;
       case UnitType.City:
@@ -965,6 +1004,29 @@ export class Config {
 
   defaultSamMissileSpeed(): number {
     return 12;
+  }
+
+  airDefenceRange(): number {
+    return 100;
+  }
+
+  defaultBomberSpeed(): number {
+    return 6;
+  }
+
+  defaultFlakMissileSpeed(): number {
+    return 14;
+  }
+
+  // Radius (in tiles) of a bomber's conventional blast. `inner` is where
+  // structures get destroyed outright; `outer` is the falloff edge for troop
+  // damage. Unlike nukes, bombing never changes tile ownership.
+  bomberBlastRadius(): { inner: number; outer: number } {
+    return { inner: 3, outer: 6 };
+  }
+
+  bomberTroopDamageFactor(): number {
+    return 8;
   }
 
   // Humans can be soldiers, soldiers attacking, soldiers in boat etc.

@@ -1454,7 +1454,13 @@ export class PlayerImpl implements Player {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Airport:
+      case UnitType.AirDefence:
         return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.Bomber:
+        return this.bomberSpawn(targetTile);
+      case UnitType.FlakMissile:
+        return targetTile;
       default:
         assertNever(unitType);
     }
@@ -1508,6 +1514,37 @@ export class PlayerImpl implements Player {
         mg.manhattanDist(a.tile(), tile) - mg.manhattanDist(b.tile(), tile),
     );
     return readySilos[0]?.tile() ?? false;
+  }
+
+  bomberSpawn(tile: TileRef): TileRef | false {
+    const mg = this.mg;
+    if (mg.isSpawnImmunityActive()) {
+      return false;
+    }
+    if (mg.isImpassable(tile)) {
+      return false;
+    }
+    const owner = this.mg.owner(tile);
+    // Allow bombing teammates after the game is over (aftergame fun)
+    const gameOver = mg.getWinner() !== null;
+    if (owner.isPlayer()) {
+      if (this.isOnSameTeam(owner) && !gameOver) {
+        return false;
+      }
+    }
+
+    // only get airports that are not on cooldown and not under construction
+    const readyAirports = this.units(UnitType.Airport).filter(
+      (airport) =>
+        airport.isActive() &&
+        !airport.isInCooldown() &&
+        !airport.isUnderConstruction(),
+    );
+    readyAirports.sort(
+      (a, b) =>
+        mg.manhattanDist(a.tile(), tile) - mg.manhattanDist(b.tile(), tile),
+    );
+    return readyAirports[0]?.tile() ?? false;
   }
 
   portSpawn(tile: TileRef, validTiles: TileRef[] | null): TileRef | false {

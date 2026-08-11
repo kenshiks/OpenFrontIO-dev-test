@@ -200,6 +200,10 @@ export enum UnitType {
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
   Factory = "Factory",
+  Airport = "Airport",
+  AirDefence = "Air Defence",
+  Bomber = "Bomber",
+  FlakMissile = "Flak Missile",
 }
 
 export enum TrainType {
@@ -220,6 +224,7 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.HydrogenBomb,
   UnitType.MIRV,
   UnitType.Warship,
+  UnitType.Bomber,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -229,6 +234,8 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.Airport,
+  UnitType.AirDefence,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -308,6 +315,19 @@ export interface UnitParamsMap {
   [UnitType.SAMLauncher]: Record<string, never>;
 
   [UnitType.City]: Record<string, never>;
+
+  [UnitType.Airport]: Record<string, never>;
+
+  [UnitType.AirDefence]: Record<string, never>;
+
+  [UnitType.Bomber]: {
+    targetTile?: number;
+    trajectory: TrajectoryTile[];
+  };
+
+  [UnitType.FlakMissile]: {
+    targetUnit: Unit;
+  };
 }
 
 // Type helper to get params type for a specific unit type

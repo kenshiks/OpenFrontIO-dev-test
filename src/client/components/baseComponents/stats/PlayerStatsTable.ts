@@ -20,6 +20,8 @@ const BUILDING_ORDER = {
   defp: 4,
   silo: 5,
   saml: 6,
+  airp: 7,
+  adef: 8,
 } as const satisfies Record<
   Exclude<(typeof otherUnits)[number], "wshp">,
   number

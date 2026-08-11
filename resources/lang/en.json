@@ -109,7 +109,10 @@
   },
   "build_menu": {
     "desc": {
+      "air_defence": "Shoots down incoming bombers",
+      "airport": "Used to launch bombers",
       "atom_bomb": "Small explosion",
+      "bomber": "Conventional strike on troops and nearby structures",
       "city": "Increases max population",
       "defense_post": "Increases defenses of nearby borders",
       "factory": "Creates railroads and spawns trains",
@@ -1320,6 +1323,8 @@
     "trains_external": "Others' Trains",
     "unit": {
       "abomb": "Atom Bomb",
+      "adef": "Air Defence",
+      "airp": "Airport",
       "city": "City",
       "defp": "Defense Post",
       "fact": "Factory",
@@ -1678,8 +1683,11 @@
     "yes": "Yes"
   },
   "unit_type": {
+    "air_defence": "Air Defence",
+    "airport": "Airport",
     "atom_bomb": "Atom Bomb",
     "boat": "Boat",
+    "bomber": "Bomber",
     "city": "City",
     "defense_post": "Defense Post",
     "factory": "Factory",

@@ -37,6 +37,9 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+const airportIcon = assetUrl("images/AirportIconWhite.svg");
+const airDefenceIcon = assetUrl("images/AirDefenceIconWhite.svg");
+const bomberIcon = assetUrl("images/BomberIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -102,6 +105,27 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: shieldIcon,
       description: "build_menu.desc.defense_post",
       key: "unit_type.defense_post",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Bomber,
+      icon: bomberIcon,
+      description: "build_menu.desc.bomber",
+      key: "unit_type.bomber",
+      countable: false,
+    },
+    {
+      unitType: UnitType.Airport,
+      icon: airportIcon,
+      description: "build_menu.desc.airport",
+      key: "unit_type.airport",
+      countable: true,
+    },
+    {
+      unitType: UnitType.AirDefence,
+      icon: airDefenceIcon,
+      description: "build_menu.desc.air_defence",
+      key: "unit_type.air_defence",
       countable: true,
     },
     {

@@ -1,5 +1,8 @@
 import { Execution, Game, Player, Tick, Unit, UnitType } from "../game/Game";
 import { TileRef } from "../game/GameMap";
+import { AirDefenceExecution } from "./AirDefenceExecution";
+import { AirportExecution } from "./AirportExecution";
+import { BomberExecution } from "./BomberExecution";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
@@ -130,6 +133,9 @@ export class ConstructionExecution implements Execution {
           new WarshipExecution({ owner: player, patrolTile: this.tile }),
         );
         break;
+      case UnitType.Bomber:
+        this.mg.addExecution(new BomberExecution(player, this.tile));
+        break;
       case UnitType.Port:
         this.mg.addExecution(new PortExecution(this.structure!));
         break;
@@ -150,6 +156,14 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
+      case UnitType.Airport:
+        this.mg.addExecution(new AirportExecution(this.structure!));
+        break;
+      case UnitType.AirDefence:
+        this.mg.addExecution(
+          new AirDefenceExecution(player, null, this.structure!),
+        );
+        break;
       default:
         console.warn(
           `unit type ${this.constructionType} cannot be constructed`,
@@ -166,6 +180,8 @@ export class ConstructionExecution implements Execution {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Airport:
+      case UnitType.AirDefence:
         return true;
       default:
         return false;
