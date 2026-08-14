@@ -150,6 +150,14 @@
       "Missile Silo": {
         "scale": 1.55,
         "iconFill": 0.85
+      },
+      "Airport": {
+        "scale": 1.08,
+        "iconFill": 0.85
+      },
+      "Air Defence": {
+        "scale": 1.4,
+        "iconFill": 1
       }
     },
     "highlightOutlineWidth": 0.04,

@@ -13,7 +13,9 @@
  *   Ground/sea (boats, trains) → rendered below structures
  *   Missiles (nukes, shells, SAM, MIRV warheads) → rendered above structures
  *
- * Atlas layout (12 columns × 13px cells, pre-built by generate-sprite-atlases.mjs):
+ * Atlas layout (14 columns × 13px cells; columns 0-11 pre-built by
+ * generate-sprite-atlases.mjs, columns 12-13 hand-authored to match the
+ * same 2-tone (180 fill / 70 outline) convention):
  *   Col 0: Transport (5×5)
  *   Col 1: Trade Ship (5×5)
  *   Col 2: Warship (11×11)
@@ -26,6 +28,8 @@
  *   Col 9: Train Engine (5×5)
  *   Col 10: Train Carriage (5×5)
  *   Col 11: Train Carriage Loaded (5×5)
+ *   Col 12: Bomber (7×7 dart/diamond)
+ *   Col 13: Paratrooper (7×7 rounded blob)
  *
  * Data flow:
  *   FrameSnapshot.units → filter by typeToAtlasIdx → instance VBO → GPU
@@ -39,9 +43,11 @@ import {
   SMOOTHED_NUKE_TYPES,
   TrainType,
   UT_ATOM_BOMB,
+  UT_BOMBER,
   UT_HYDROGEN_BOMB,
   UT_MIRV,
   UT_MIRV_WARHEAD,
+  UT_PARATROOPER,
   UT_SAM_MISSILE,
   UT_SHELL,
   UT_TRADE_SHIP,
@@ -84,6 +90,8 @@ const UNIT_ORDER = [
   "TrainEngine",
   "TrainCarriage",
   "TrainCarriageLoaded",
+  UT_BOMBER,
+  UT_PARATROOPER,
 ] as const;
 
 const ATLAS_COLS = UNIT_ORDER.length;
@@ -133,7 +141,9 @@ const FLICKER_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /** Missile/projectile types — rendered on top of structures in the layer order.
- *  Ground/sea units (boats, trains) render below structures. */
+ *  Ground/sea units (boats, trains) render below structures. Bomber and
+ *  Paratrooper are aircraft, so they belong here too — flying over
+ *  structures, same as everything else airborne. */
 const MISSILE_TYPES: ReadonlySet<string> = new Set([
   UT_ATOM_BOMB,
   UT_HYDROGEN_BOMB,
@@ -141,6 +151,8 @@ const MISSILE_TYPES: ReadonlySet<string> = new Set([
   UT_SAM_MISSILE,
   UT_SHELL,
   UT_MIRV_WARHEAD,
+  UT_BOMBER,
+  UT_PARATROOPER,
 ]);
 
 /** Values per smoothing segment in the flat `smoothSegs` array:

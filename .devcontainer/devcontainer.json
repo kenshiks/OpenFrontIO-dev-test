@@ -1,0 +1,23 @@
+{
+  "name": "OpenFront.io Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "forwardPorts": [9000],
+  "portsAttributes": {
+    "9000": {
+      "label": "OpenFront (client + server)",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  // npm ci --ignore-scripts, per this repo's convention (see CLAUDE.md) —
+  // do not swap for "npm install".
+  "postCreateCommand": "npm run inst",
+  // The dev server itself starts via .vscode/tasks.json (runOn: folderOpen)
+  // instead of a lifecycle hook here — task output shows up in a visible
+  // terminal panel, whereas a backgrounded postStartCommand is silent and
+  // unreliable about actually surviving container startup.
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}

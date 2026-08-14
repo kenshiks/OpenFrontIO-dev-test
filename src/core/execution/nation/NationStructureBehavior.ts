@@ -39,6 +39,18 @@ const SAM_RATIO_BY_DIFFICULTY: Record<Difficulty, number> = {
 };
 
 /**
+ * Air Defence ratio per city, keyed by difficulty. Lower than SAM's: Air
+ * Defence has a fixed 60-tile range with no upgrade path, so it covers less
+ * ground per unit than an upgraded SAM does.
+ */
+const AIR_DEFENCE_RATIO_BY_DIFFICULTY: Record<Difficulty, number> = {
+  [Difficulty.Easy]: 0.1,
+  [Difficulty.Medium]: 0.15,
+  [Difficulty.Hard]: 0.2,
+  [Difficulty.Impossible]: 0.25,
+};
+
+/**
  * Returns structure ratios relative to city count, adjusted by difficulty.
  * Cities are always prioritized and built first.
  * When cities are disabled, we use TILES_PER_CITY_EQUIVALENT. That's not ideal, nations won't properly upgrade structures, but it's better than nothing. Probably 99.9% of players won't disable cities anyway.
@@ -60,6 +72,14 @@ function getStructureRatios(
       ratioPerCity: 0.2,
       perceivedCostIncreasePerOwned: 1,
     },
+    [UnitType.AirDefence]: {
+      ratioPerCity: AIR_DEFENCE_RATIO_BY_DIFFICULTY[difficulty],
+      perceivedCostIncreasePerOwned: 0.3,
+    },
+    [UnitType.Airport]: {
+      ratioPerCity: 0.15,
+      perceivedCostIncreasePerOwned: 1,
+    },
   };
 }
 
@@ -71,6 +91,9 @@ const FACTORY_COASTAL_RATIO_MULTIPLIER = 0.33;
 
 /** Maximum number of missile silos a nation will build */
 const MAX_MISSILE_SILOS = 3;
+
+/** Maximum number of airports a nation will build (each costs up to 2M) */
+const MAX_AIRPORTS = 2;
 
 /** Ratio per city used for the first missile silo so nations start nuking earlier */
 const FIRST_MISSILE_SILO_RATIO = 0.4;
@@ -485,12 +508,20 @@ export class NationStructureBehavior {
       UnitType.Factory,
       UnitType.SAMLauncher,
       UnitType.MissileSilo,
+      UnitType.AirDefence,
+      UnitType.Airport,
     ];
 
     const nukesEnabled =
       !config.isUnitDisabled(UnitType.AtomBomb) ||
       !config.isUnitDisabled(UnitType.HydrogenBomb) ||
       !config.isUnitDisabled(UnitType.MIRV);
+
+    // Airport is only worth building if it can launch something; Air Defence
+    // is only worth building if there's something to intercept.
+    const airStrikesEnabled =
+      !config.isUnitDisabled(UnitType.Bomber) ||
+      !config.isUnitDisabled(UnitType.Paratrooper);
 
     for (const structureType of buildOrder) {
       // Skip disabled structure types
@@ -514,6 +545,14 @@ export class NationStructureBehavior {
 
       // Skip SAM launchers if missile silos are disabled
       if (!missileSilosEnabled && structureType === UnitType.SAMLauncher) {
+        continue;
+      }
+
+      if (
+        !airStrikesEnabled &&
+        (structureType === UnitType.Airport ||
+          structureType === UnitType.AirDefence)
+      ) {
         continue;
       }
 
@@ -580,6 +619,12 @@ export class NationStructureBehavior {
 
     // Hard cap on missile silos
     if (type === UnitType.MissileSilo && owned >= MAX_MISSILE_SILOS) {
+      return false;
+    }
+
+    // Hard cap on airports: each one gets sharply more expensive, and a
+    // nation only ever has one bomber/paratrooper in flight at a time anyway.
+    if (type === UnitType.Airport && owned >= MAX_AIRPORTS) {
       return false;
     }
 
@@ -902,6 +947,10 @@ export class NationStructureBehavior {
         return this.portValue();
       case UnitType.SAMLauncher:
         return this.samLauncherValue();
+      case UnitType.Airport:
+        return this.airportValue();
+      case UnitType.AirDefence:
+        return this.airDefenceValue();
       default:
         throw new Error(`Value function not implemented for ${type}`);
     }
@@ -928,6 +977,41 @@ export class NationStructureBehavior {
       w += Math.min(closestBorderDist, borderSpacing);
 
       // Prefer to be away from other structures of the same type
+      const otherTiles: Set<TileRef> = new Set(otherUnits.map((u) => u.tile()));
+      otherTiles.delete(tile);
+      const closestOther = closestTwoTiles(game, otherTiles, [tile]);
+      if (closestOther !== null) {
+        const d = game.manhattanDist(closestOther.x, tile);
+        w += Math.min(d, structureSpacing);
+      }
+
+      return w;
+    };
+  }
+
+  /**
+   * Value function for Airport.
+   * Same shape as MissileSilo's: prefers high elevation, distance from
+   * border (a launch platform is worth protecting), and spacing from other
+   * airports.
+   */
+  private airportValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const borderTiles = this.player.borderTiles();
+    const otherUnits = this.player.units(UnitType.Airport);
+    const { borderSpacing, structureSpacing } = this.spacingConstants();
+
+    return (tile) => {
+      let w = 0;
+
+      // Prefer higher elevations
+      w += game.magnitude(tile);
+
+      // Prefer to be away from the border
+      const [, closestBorderDist] = closestTile(game, borderTiles, tile);
+      w += Math.min(closestBorderDist, borderSpacing);
+
+      // Prefer to be away from other airports
       const otherTiles: Set<TileRef> = new Set(otherUnits.map((u) => u.tile()));
       otherTiles.delete(tile);
       const closestOther = closestTwoTiles(game, otherTiles, [tile]);
@@ -1334,6 +1418,71 @@ export class NationStructureBehavior {
           } else {
             w += structureSpacing * entry.weight;
           }
+        }
+      }
+
+      return w;
+    };
+  }
+
+  /**
+   * Value function for Air Defence.
+   * Same shape as SAM's minus the level-based coverage weighting (Air
+   * Defence has no levels/upgrades): elevation, distance from border,
+   * spacing from other Air Defences, and proximity to protectable
+   * structures — including Airport, since that's exactly what it exists
+   * to protect an inbound bomber/paratrooper strike from reaching.
+   */
+  private airDefenceValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const player = this.player;
+    const borderTiles = player.borderTiles();
+    const otherUnits = player.units(UnitType.AirDefence);
+    const { borderSpacing, structureSpacing } = this.spacingConstants();
+    const { difficulty } = game.config().gameConfig();
+
+    const protectEntries: TileRef[] = [];
+    for (const unit of player.units()) {
+      switch (unit.type()) {
+        case UnitType.City:
+        case UnitType.Factory:
+        case UnitType.MissileSilo:
+        case UnitType.Port:
+        case UnitType.Airport:
+          protectEntries.push(unit.tile());
+      }
+    }
+    const range = game.config().airDefenceRange();
+    const rangeSquared = range * range;
+
+    return (tile) => {
+      let w = 0;
+
+      // Prefer higher elevations
+      w += game.magnitude(tile);
+
+      // Prefer to be away from the border
+      const closestBorder = closestTwoTiles(game, borderTiles, [tile]);
+      if (closestBorder !== null) {
+        const d = game.manhattanDist(closestBorder.x, tile);
+        w += Math.min(d, borderSpacing);
+      }
+
+      // Prefer to be away from other Air Defences
+      const otherTiles: Set<TileRef> = new Set(otherUnits.map((u) => u.tile()));
+      otherTiles.delete(tile);
+      const closestOther = closestTwoTiles(game, otherTiles, [tile]);
+      if (closestOther !== null) {
+        const d = game.manhattanDist(closestOther.x, tile);
+        w += Math.min(d, structureSpacing);
+      }
+
+      // Prefer to be in range of protectable structures (skip on easy difficulty)
+      if (difficulty !== Difficulty.Easy) {
+        for (const entryTile of protectEntries) {
+          const distanceSquared = game.euclideanDistSquared(tile, entryTile);
+          if (distanceSquared > rangeSquared) continue;
+          w += structureSpacing;
         }
       }
 

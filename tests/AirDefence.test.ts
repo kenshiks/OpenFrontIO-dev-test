@@ -1,0 +1,180 @@
+import { AirDefenceExecution } from "../src/core/execution/AirDefenceExecution";
+import { AirportExecution } from "../src/core/execution/AirportExecution";
+import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
+import { BomberExecution } from "../src/core/execution/BomberExecution";
+import {
+  Game,
+  Player,
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "../src/core/game/Game";
+import { setup } from "./util/Setup";
+import { TestConfig } from "./util/TestConfig";
+import { executeTicks } from "./util/utils";
+
+let game: Game;
+let attacker: Player;
+let defender: Player;
+
+describe("AirDefence", () => {
+  beforeEach(async () => {
+    game = await setup("plains", { infiniteGold: true, instantBuild: true });
+    // Bomber speed derives from nuke speed (half of it), so pin nuke speed
+    // here too, same as tests that care about nuke travel time. Kept slow
+    // enough that interception at Air Defence's (fixed, unupgradeable) 60
+    // range has a reliable window to work with.
+    (game.config() as TestConfig).setDefaultNukeSpeed(10);
+
+    const attackerInfo = new PlayerInfo(
+      "attacker_id",
+      PlayerType.Human,
+      null,
+      "attacker_id",
+    );
+    const defenderInfo = new PlayerInfo(
+      "defender_id",
+      PlayerType.Human,
+      null,
+      "defender_id",
+    );
+    game.addPlayer(attackerInfo);
+    game.addPlayer(defenderInfo);
+
+    attacker = game.player("attacker_id");
+    defender = game.player("defender_id");
+
+    attacker.conquer(game.ref(1, 1));
+    const airport = attacker.buildUnit(UnitType.Airport, game.ref(1, 1), {});
+    game.addExecution(new AirportExecution(airport));
+
+    defender.conquer(game.ref(50, 50));
+    defender.addTroops(10_000);
+    const airDefence = defender.buildUnit(
+      UnitType.AirDefence,
+      game.ref(50, 50),
+      {},
+    );
+    game.addExecution(new AirDefenceExecution(defender, null, airDefence));
+
+    executeTicks(game, 2);
+  });
+
+  test("air defence is ready (not on cooldown) once built", () => {
+    expect(defender.units(UnitType.AirDefence)[0].isInCooldown()).toBeFalsy();
+  });
+
+  test("air defence shoots down an inbound bomber before it reaches its target", () => {
+    const troopsBefore = defender.troops();
+
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 2);
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(1);
+
+    executeTicks(game, 30);
+
+    // The bomber should have been destroyed in flight rather than reaching
+    // its target and detonating.
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(defender.troops()).toBe(troopsBefore);
+  });
+
+  test("air defence cannot intercept a second bomber while reloading", () => {
+    // Give the attacker a second airport so a follow-up bomber can launch
+    // immediately, without waiting on the first airport's own cooldown.
+    attacker.conquer(game.ref(2, 2));
+    const secondAirport = attacker.buildUnit(
+      UnitType.Airport,
+      game.ref(2, 2),
+      {},
+    );
+    game.addExecution(new AirportExecution(secondAirport));
+    executeTicks(game, 2);
+
+    // First bomber gets shot down, putting air defence on cooldown.
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(defender.units(UnitType.AirDefence)[0].isInCooldown()).toBeTruthy();
+
+    const troopsBefore = defender.troops();
+
+    // A second bomber, launched from the still-ready second airport, should
+    // get through while air defence reloads.
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(defender.troops()).toBeLessThan(troopsBefore);
+  });
+
+  test("does not shoot down an allied bomber", () => {
+    game.addExecution(new AllianceRequestExecution(attacker, defender.id()));
+    game.executeNextTick();
+    game.addExecution(new AllianceRequestExecution(defender, attacker.id()));
+    game.executeNextTick();
+    expect(attacker.isAlliedWith(defender)).toBeTruthy();
+
+    // Target a spot a few tiles off the defender's Air Defence itself
+    // (still well within its 60-tile interception range) so the strike
+    // doesn't land on an allied structure and trip the separate
+    // alliance-breaking rule tested below — this test is only about the
+    // friendly-fire exclusion while genuinely still allied.
+    game.addExecution(new BomberExecution(attacker, game.ref(55, 50)));
+    executeTicks(game, 30);
+
+    // Reached the target and detonated instead of being shot down mid-flight
+    // by its own ally's Air Defence, which never fired.
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    expect(defender.units(UnitType.AirDefence)[0].isInCooldown()).toBeFalsy();
+  });
+
+  test("bombing an ally's structure breaks the alliance", () => {
+    game.addExecution(new AllianceRequestExecution(attacker, defender.id()));
+    game.executeNextTick();
+    game.addExecution(new AllianceRequestExecution(defender, attacker.id()));
+    game.executeNextTick();
+    expect(attacker.isAlliedWith(defender)).toBeTruthy();
+
+    // Bomb the ally's own Air Defence directly: same rule as a nuke, hitting
+    // an allied structure breaks the alliance (and marks the attacker a
+    // traitor) at launch time, regardless of blast-radius tile count.
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+
+    expect(attacker.isAlliedWith(defender)).toBeFalsy();
+    expect(attacker.isTraitor()).toBeTruthy();
+  });
+
+  test("two independent Air Defences don't both fire at the same bomber", () => {
+    // A second, unrelated defender with its own Air Defence at the same
+    // spot: both structures can see the one inbound bomber.
+    const defender2Info = new PlayerInfo(
+      "defender2_id",
+      PlayerType.Human,
+      null,
+      "defender2_id",
+    );
+    game.addPlayer(defender2Info);
+    const defender2 = game.player("defender2_id");
+    defender2.conquer(game.ref(51, 51));
+    const airDefence2 = defender2.buildUnit(
+      UnitType.AirDefence,
+      game.ref(51, 51),
+      {},
+    );
+    game.addExecution(new AirDefenceExecution(defender2, null, airDefence2));
+    executeTicks(game, 2);
+
+    game.addExecution(new BomberExecution(attacker, game.ref(50, 50)));
+    executeTicks(game, 30);
+
+    expect(attacker.units(UnitType.Bomber)).toHaveLength(0);
+    // Only one of the two should actually have fired and gone on cooldown;
+    // the other's shot would be wasted on an already-dead target.
+    const onCooldown = [defender, defender2].filter((p) =>
+      p.units(UnitType.AirDefence)[0].isInCooldown(),
+    );
+    expect(onCooldown).toHaveLength(1);
+  });
+});

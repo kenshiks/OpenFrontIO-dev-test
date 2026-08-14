@@ -219,6 +219,12 @@ export class Config {
   SiloCooldown(): number {
     return 90;
   }
+  airportCooldown(): number {
+    return 150;
+  }
+  airDefenceCooldown(): number {
+    return 90;
+  }
 
   defensePostRange(): number {
     return 30;
@@ -458,6 +464,56 @@ export class Config {
             ? 0
             : SAM_CONSTRUCTION_TICKS,
           upgradable: true,
+        };
+        break;
+      case UnitType.Airport:
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              Math.min(2_000_000, (numUnits + 1) * 1_000_000),
+            UnitType.Airport,
+          ),
+          constructionDuration: this.instantBuild() ? 0 : 10 * 10,
+        };
+        break;
+      case UnitType.AirDefence:
+        // Same cost curve as City/Factory/Port.
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              Math.min(1_000_000, Math.pow(2, numUnits) * 125_000),
+            UnitType.AirDefence,
+          ),
+          constructionDuration: this.instantBuild()
+            ? 0
+            : SAM_CONSTRUCTION_TICKS,
+        };
+        break;
+      case UnitType.Bomber:
+        // Flat cost like Atom Bomb, not a per-unit-count curve: a Bomber is
+        // single-use and short-lived (destroyed on impact or interception),
+        // so unitsOwned resets to 0 between launches and a scaling curve
+        // never actually climbs for repeated single strikes — it would
+        // just make every bomb 3x cheaper than an Atom Bomb of the same
+        // blast radius. Same destructive footprint, same price.
+        info = {
+          cost: this.costWrapper(() => 750_000, UnitType.Bomber),
+          maxHealth: 1,
+        };
+        break;
+      case UnitType.FlakMissile:
+        info = {
+          cost: () => 0n,
+        };
+        break;
+      case UnitType.Paratrooper:
+        // Same cost curve as Warship.
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
+            UnitType.Paratrooper,
+          ),
+          maxHealth: 1,
         };
         break;
       case UnitType.City:
@@ -793,6 +849,13 @@ export class Config {
     return Math.floor(attacker.troops() / 5);
   }
 
+  paratrooperDropAmount(
+    attacker: Player,
+    defender: Player | TerraNullius,
+  ): number {
+    return this.boatAttackAmount(attacker, defender);
+  }
+
   warshipShellLifetime(): number {
     return 20; // in ticks (one tick is 100ms)
   }
@@ -965,6 +1028,37 @@ export class Config {
 
   defaultSamMissileSpeed(): number {
     return 12;
+  }
+
+  // Fixed range, no upgrade path (unlike SAM Launcher's samRange(level)).
+  airDefenceRange(): number {
+    return 60;
+  }
+
+  // Half the speed of a standard nuke: bombers and paratroopers are
+  // conventional aircraft, not missiles.
+  defaultBomberSpeed(): number {
+    return this.nukeSpeed(UnitType.AtomBomb) / 2;
+  }
+
+  defaultFlakMissileSpeed(): number {
+    return 14;
+  }
+
+  defaultParatrooperSpeed(): number {
+    return this.nukeSpeed(UnitType.AtomBomb) / 2;
+  }
+
+  // Same blast radius as an Atom Bomb: `inner` is where structures get
+  // destroyed outright and land reverts to neutral; `outer` is the falloff
+  // edge for troop damage. Unlike a nuke, there's no fallout and no
+  // land-to-water cratering — a bomber is conventional, not nuclear.
+  bomberBlastRadius(): NukeMagnitude {
+    return this.nukeMagnitudes(UnitType.AtomBomb);
+  }
+
+  bomberTroopDamageFactor(): number {
+    return 8;
   }
 
   // Humans can be soldiers, soldiers attacking, soldiers in boat etc.
