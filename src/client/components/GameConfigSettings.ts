@@ -118,6 +118,10 @@ const unitOptions: { type: UnitType; translationKey: string }[] = [
   { type: UnitType.HydrogenBomb, translationKey: "unit_type.hydrogen_bomb" },
   { type: UnitType.MIRV, translationKey: "unit_type.mirv" },
   { type: UnitType.Factory, translationKey: "unit_type.factory" },
+  { type: UnitType.Airport, translationKey: "unit_type.airport" },
+  { type: UnitType.AirDefence, translationKey: "unit_type.air_defence" },
+  { type: UnitType.Bomber, translationKey: "unit_type.bomber" },
+  { type: UnitType.Paratrooper, translationKey: "unit_type.paratrooper" },
 ];
 
 const MAP_ICON = svg`<path

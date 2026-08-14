@@ -510,6 +510,46 @@ export class UserSettingModal extends BaseModal {
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 
+      <setting-keybind
+        action="buildAirport"
+        label=${translateText("user_setting.build_airport")}
+        description=${translateText("user_setting.build_airport_desc")}
+        defaultKey=${this.defaultKeybinds.buildAirport}
+        .value=${this.getKeyValue("buildAirport")}
+        .display=${this.getKeyChar("buildAirport")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildAirDefence"
+        label=${translateText("user_setting.build_air_defence")}
+        description=${translateText("user_setting.build_air_defence_desc")}
+        defaultKey=${this.defaultKeybinds.buildAirDefence}
+        .value=${this.getKeyValue("buildAirDefence")}
+        .display=${this.getKeyChar("buildAirDefence")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildBomber"
+        label=${translateText("user_setting.build_bomber")}
+        description=${translateText("user_setting.build_bomber_desc")}
+        defaultKey=${this.defaultKeybinds.buildBomber}
+        .value=${this.getKeyValue("buildBomber")}
+        .display=${this.getKeyChar("buildBomber")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildParatrooper"
+        label=${translateText("user_setting.build_paratrooper")}
+        description=${translateText("user_setting.build_paratrooper_desc")}
+        defaultKey=${this.defaultKeybinds.buildParatrooper}
+        .value=${this.getKeyValue("buildParatrooper")}
+        .display=${this.getKeyChar("buildParatrooper")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
       <h2
         class="text-blue-200 text-xl font-bold mt-8 mb-3 border-b border-white/10 pb-2"
       >

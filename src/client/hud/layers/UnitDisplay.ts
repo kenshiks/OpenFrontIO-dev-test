@@ -15,7 +15,10 @@ import { UIState } from "../../UIState";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import {
+  airDefenceIcon,
+  airportIcon,
   atomBombIcon,
+  bomberIcon,
   cityIcon,
   defensePostIcon,
   factoryIcon,
@@ -23,6 +26,7 @@ import {
   hydrogenBombIcon,
   mirvIcon,
   missileSiloIcon,
+  paratrooperIcon,
   portIcon,
   samLauncherIcon,
   warshipIcon,
@@ -42,6 +46,8 @@ export class UnitDisplay extends LitElement implements Controller {
   private _port = 0;
   private _defensePost = 0;
   private _samLauncher = 0;
+  private _airport = 0;
+  private _airDefence = 0;
   private allDisabled = false;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
 
@@ -84,6 +90,12 @@ export class UnitDisplay extends LitElement implements Controller {
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.Port).length ?? 0) > 0
         );
+      case UnitType.Bomber:
+      case UnitType.Paratrooper:
+        return (
+          this.cost(item) <= (player?.gold() ?? 0n) &&
+          (player?.units(UnitType.Airport).length ?? 0) > 0
+        );
       default:
         return this.cost(item) <= (player?.gold() ?? 0n);
     }
@@ -102,6 +114,8 @@ export class UnitDisplay extends LitElement implements Controller {
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
     this._warships = player.totalUnitLevels(UnitType.Warship);
+    this._airport = player.totalUnitLevels(UnitType.Airport);
+    this._airDefence = player.totalUnitLevels(UnitType.AirDefence);
     this.requestUpdate();
   }
 
@@ -170,6 +184,34 @@ export class UnitDisplay extends LitElement implements Controller {
             UnitType.Warship,
             "warship",
             this.keybinds["buildWarship"]?.key ?? "7",
+          )}
+          ${this.renderUnitItem(
+            airportIcon,
+            this._airport,
+            UnitType.Airport,
+            "airport",
+            this.keybinds["buildAirport"]?.key ?? "KeyH",
+          )}
+          ${this.renderUnitItem(
+            airDefenceIcon,
+            this._airDefence,
+            UnitType.AirDefence,
+            "air_defence",
+            this.keybinds["buildAirDefence"]?.key ?? "KeyJ",
+          )}
+          ${this.renderUnitItem(
+            bomberIcon,
+            null,
+            UnitType.Bomber,
+            "bomber",
+            this.keybinds["buildBomber"]?.key ?? "KeyN",
+          )}
+          ${this.renderUnitItem(
+            paratrooperIcon,
+            null,
+            UnitType.Paratrooper,
+            "paratrooper",
+            this.keybinds["buildParatrooper"]?.key ?? "KeyV",
           )}
           ${this.renderUnitItem(
             atomBombIcon,
@@ -282,6 +324,12 @@ export class UnitDisplay extends LitElement implements Controller {
                 break;
               case UnitType.Warship:
                 this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
+                break;
+              case UnitType.Bomber:
+              case UnitType.Paratrooper:
+                this.eventBus?.emit(
+                  new ToggleStructureEvent([UnitType.Airport]),
+                );
                 break;
               default:
                 this.eventBus?.emit(new ToggleStructureEvent([unitType]));

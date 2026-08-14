@@ -11,11 +11,10 @@
   // npm ci --ignore-scripts, per this repo's convention (see CLAUDE.md) —
   // do not swap for "npm install".
   "postCreateCommand": "npm run inst",
-  // VITE_HOST=lan binds the client dev server to 0.0.0.0 instead of just
-  // localhost, which port forwarding needs to reach it from outside the
-  // container. Backgrounded with nohup so it survives postStartCommand's
-  // shell exiting; logs land in /tmp for troubleshooting.
-  "postStartCommand": "nohup npm run dev:host > /tmp/openfront-dev.log 2>&1 &",
+  // The dev server itself starts via .vscode/tasks.json (runOn: folderOpen)
+  // instead of a lifecycle hook here — task output shows up in a visible
+  // terminal panel, whereas a backgrounded postStartCommand is silent and
+  // unreliable about actually surviving container startup.
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
