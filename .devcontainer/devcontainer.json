@@ -1,6 +1,6 @@
 {
   "name": "OpenFront.io Dev",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
   "forwardPorts": [9000],
   "portsAttributes": {
     "9000": {
