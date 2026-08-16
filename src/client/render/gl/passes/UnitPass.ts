@@ -28,8 +28,8 @@
  *   Col 9: Train Engine (5×5)
  *   Col 10: Train Carriage (5×5)
  *   Col 11: Train Carriage Loaded (5×5)
- *   Col 12: Bomber (7×7 dart/diamond)
- *   Col 13: Paratrooper (7×7 rounded blob)
+ *   Col 12: Bomber (9×9 triangle, apex up — nose of the plane)
+ *   Col 13: Paratrooper (9×9 triangle, apex down — dropping)
  *
  * Data flow:
  *   FrameSnapshot.units → filter by typeToAtlasIdx → instance VBO → GPU
